@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stockroom — Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">STOCK<span>ROOM</span></div>
+    <nav class="nav-links">
+      <a href="index.html" class="active">Dashboard</a>
+      <a href="products.html">Products</a>
+      <a href="product-form.html">Add Product</a>
+    </nav>
+  </aside>
+
+  <main>
+    <h1>Dashboard</h1>
+    <p class="subtitle">Snapshot of what's on the shelves right now.</p>
+
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span>Needs reordering</span>
+        <a href="products.html" class="btn btn-sm">View all products</a>
+      </div>
+      <div class="table-wrap"><table>
+        <thead>
+          <tr><th>Product</th><th>SKU</th><th>On hand</th><th>Reorder at</th></tr>
+        </thead>
+        <tbody id="lowStockBody"></tbody>
+      </table></div>
+    </div>
+  </main>
+
+  <script src="repository.js"></script>
+  <script>
+    function peso(n) {
+      return "₱" + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    async function render() {
+      const body = document.getElementById("lowStockBody");
+
+      try {
+        const { totalItems, totalUnits, totalValue, lowStock } = await InventoryRepository.stats();
+
+        document.getElementById("statGrid").innerHTML = `
+          <div class="stat-card">
+            <div class="label">Total products</div>
+            <div class="value">${totalItems}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Units in stock</div>
+            <div class="value">${totalUnits}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Inventory value</div>
+            <div class="value">${peso(totalValue)}</div>
+          </div>
+          <div class="stat-card ${lowStock.length ? 'warning' : ''}">
+            <div class="label">Low stock alerts</div>
+            <div class="value">${lowStock.length}</div>
+          </div>
+        `;
+
+        if (lowStock.length === 0) {
+          body.innerHTML = `<tr><td colspan="4" class="empty-state">Nothing needs reordering. All good.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = lowStock.map(p => `
+          <tr>
+            <td>${p.name}</td>
+            <td class="sku">${p.sku}</td>
+            <td class="num low">${p.quantity}</td>
+            <td class="num">${p.reorderLevel}</td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        body.innerHTML = `<tr><td colspan="4" class="empty-state">${err.message}</td></tr>`;
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
